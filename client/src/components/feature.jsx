@@ -2,6 +2,7 @@ import React from "react";
 
 export default function Feature({featureref}) {
     console.log("hi")
+    console.log(featureref)
     return (
         <div  ref={featureref} className="w-full h-[110vh] gap-8 bg-background flex flex-col pl-32 pt-20 ">
             <div className="flex justify-center items-center text-heading font-bold text-7xl">

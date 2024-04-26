@@ -7,13 +7,18 @@ import arrow from "../arroww.json"
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import Login from "../login";
 import Feature from "../feature";
+import { useIsInViewport } from "../inview";
 
 
 export default function Home() {
     const homeref = useRef(null)
+    const homeinview = useIsInViewport(homeref)
     const aboutref = useRef(null)
+    const aboutinview = useIsInViewport(aboutref)
     const featureref = useRef(null)
+    const featureinview = useIsInViewport(featureref)
     const loginref = useRef(null)
+    const logininview = useIsInViewport(loginref)
     const [logfocus, setLogfocus] = useState(false)
     const [ani, setAni] = useState(first)
     const inview = useInView(aboutref)
@@ -96,10 +101,10 @@ export default function Home() {
                
             </div>
             <div className="flex w-[5%] fixed h-full bg-background justify-center items-center  flex-col gap-4 p-4">
-                <motion.div whileHover={{ scale: 1.2 }} className="w-4 h-4 rounded-full bg-heading opacity-20"></motion.div>
-                <motion.div whileHover={{ scale: 1.2 }} className="w-4 h-4 rounded-full bg-heading opacity-20"></motion.div>
-                <motion.div whileHover={{ scale: 1.2 }} className="w-4 h-4 rounded-full bg-heading opacity-20"></motion.div>
-                <motion.div whileHover={{ scale: 1.2 }} className="w-4 h-4 rounded-full bg-heading opacity-20"></motion.div>
+                <motion.div onClick={()=>{homeref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${homeinview?"opacity-90":"opacity-20"}`}></motion.div>
+                <motion.div onClick={()=>{aboutref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${aboutinview?"opacity-90":"opacity-20"}`}></motion.div>
+                <motion.div onClick={()=>{featureref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${featureinview?"opacity-90":"opacity-20"}`}></motion.div>
+                <motion.div onClick={()=>{loginref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${logininview?"opacity-90":"opacity-20"}`}></motion.div>
             </div>
         </div>
     )
