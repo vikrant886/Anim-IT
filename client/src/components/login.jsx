@@ -47,7 +47,7 @@ export default function Login({loginref,logfocus,setLogfocus}) {
 
             </div>
             <div className="w-full h-full z-50 flex flex-col items-center justify-center" >
-                <motion.div className={`relative ${logfocus ? "top-44" : "top-60"} transition-all z-50 duration-500`}
+                <motion.div className={`relative ${logfocus ? "top-36" : "top-60"} transition-all z-50 duration-500`}
                 >
                     <svg width="232" height="180" viewBox="0 0 232 340" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="116.5" cy="50.5" r="48" stroke="#FFFCE1" stroke-width="5" />
@@ -61,11 +61,17 @@ export default function Login({loginref,logfocus,setLogfocus}) {
                     </svg>
 
                 </motion.div>
-                <div className="w-[30%] z-50 h-[60%]  rounded-lg bg-black flex flex-col items-center justify-center" onClick={() => { setLogfocus(true) }} >
-                    <p>Email</p>
-                    <input type="text" />
-                    <p>password</p>
-                    <input type="text" />
+                <div className="w-[30%] z-50 h-[60%] gap-4 border-border border-2 rounded-xl bg-background flex flex-col items-center " onClick={() => { setLogfocus(true) }} >
+                    <p className="text-heading mr-auto pl-16 font-bold">
+                        Email
+                        <span className="text-red-500 ml-2">*</span>
+                    </p>
+                    <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Email" />
+                    <p className="text-heading mr-auto pl-16 font-bold">
+                        Password
+                        <span className="text-red-500 ml-2">*</span>
+                    </p>
+                    <input type="text" className=" p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Password"  />
                 </div>
             </div>
         </div>

@@ -32,7 +32,7 @@ export default function Home() {
 
 
     return (
-        <div className="flex flex-row w-full h-[400vh] overflow-hidden">
+        <div className="flex flex-row w-full h-[400vh] overflow-hidden scroll-smooth">
             <div className="flex flex-col">
                 <div ref={homeref} className="w-full h-[100vh] bg-background border-b-2 border-border border">
                     <Header className="mt-auto" loginref={loginref} homeref={homeref} aboutref={aboutref} featureref={featureref} />
