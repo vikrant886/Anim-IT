@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Home from "./components/pages/home";
+import Dash from "./components/pages/Dashboard";
+import Production from "./components/pages/prod";
 
 function App() {
   return (
@@ -12,6 +14,8 @@ function App() {
           <Route path="/register" element={<Register />}></Route> */}
           
           <Route path="/" element={<Home/>}></Route>
+          <Route path="/dash" element={<Dash/>}></Route>
+          <Route path="/prod" element={<Production/>}></Route>
         </Routes>
       </BrowserRouter>
     </>

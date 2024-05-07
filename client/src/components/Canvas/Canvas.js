@@ -1,12 +1,13 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import rough from "roughjs/bundled/rough.esm";
 import getStroke from "perfect-freehand";
+import { ProdContext } from "../context/prodContext";
 
 const generator = rough.generator();
 // const drawingAreaWidth = window.innerWidth / 2; // Define the width of the drawing area
 // const drawingAreaHeight = window.innerHeight / 2; // Define the height of the drawing area
 
-const createElement = (id, x1, y1, x2, y2, type) => {
+const createElement = (id, x1, y1, x2, y2, type, linewidth) => {
     switch (type) {
         case "line":
         case "rectangle":
@@ -16,7 +17,7 @@ const createElement = (id, x1, y1, x2, y2, type) => {
                     : generator.rectangle(x1, y1, x2 - x1, y2 - y1);
             return { id, x1, y1, x2, y2, type, roughElement };
         case "pencil":
-            return { id, type, points: [{ x: x1, y: y1 }] };
+            return { id, type, points: [{ x: x1, y: y1 }] , linewidth: linewidth};
         case "text":
             return { id, type, x1, y1, x2, y2, text: "" };
         default:
@@ -162,14 +163,17 @@ const getSvgPathFromStroke = stroke => {
     return d.join(" ");
 };
 
-const drawElement = (roughCanvas, context, element) => {
+const drawElement = (roughCanvas, context, element,linewidth) => {
     switch (element.type) {
         case "line":
         case "rectangle":
             roughCanvas.draw(element.roughElement);
             break;
         case "pencil":
-            const stroke = getSvgPathFromStroke(getStroke(element.points));
+            const stroke = getSvgPathFromStroke(getStroke(element.points, {
+                size: linewidth,
+                thinning: 0.7,
+            }));
             context.fill(new Path2D(stroke));
             break;
         case "text":
@@ -218,15 +222,23 @@ const usePressedKeys = () => {
 //   return { clientX, clientY };
 // };
 
-const Canvas = () => {
+export default function Canvas() {
     const [elements, setElements, undo, redo] = useHistory([]);
     const [action, setAction] = useState("none");
-    const [tool, setTool] = useState("rectangle");
+    // const [tool, setTool] = useState("rectangle");
+    const { tool, setTool, undocall, redocall , linewidth} = useContext(ProdContext)
     const [selectedElement, setSelectedElement] = useState(null);
     const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 });
     const [startPanMousePosition, setStartPanMousePosition] = React.useState({ x: 0, y: 0 });
     const textAreaRef = useRef();
     const pressedKeys = usePressedKeys();
+
+    useEffect(() => {
+        undo();
+    }, [undocall])
+    useEffect(() => {
+        redo()
+    }, [redocall])
 
     useEffect(() => {
         const canvas = document.getElementById("canvas");
@@ -264,7 +276,7 @@ const Canvas = () => {
 
         elements.forEach(element => {
             if (action === "writing" && selectedElement.id === element.id) return;
-            drawElement(roughCanvas, context, element);
+            drawElement(roughCanvas, context, element,linewidth);
         });
         context.restore();
     }, [elements, action, selectedElement, panOffset]);
@@ -310,13 +322,14 @@ const Canvas = () => {
         }
     }, [action, selectedElement]);
 
-    const updateElement = (id, x1, y1, x2, y2, type, options) => {
+    const updateElement = (id, x1, y1, x2, y2, type, options,linewidth) => {
         const elementsCopy = [...elements];
-
+        // console.log({x1,y1,x2,y2})
+        // x2=x2-75;
         switch (type) {
             case "line":
             case "rectangle":
-                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type);
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type,linewidth);
                 break;
             case "pencil":
                 elementsCopy[id].points = [...elementsCopy[id].points, { x: x2, y: y2 }];
@@ -328,7 +341,7 @@ const Canvas = () => {
                     .measureText(options.text).width;
                 const textHeight = 24;
                 elementsCopy[id] = {
-                    ...createElement(id, x1, y1, x1 + textWidth, y1 + textHeight, type),
+                    ...createElement(id, x1, y1, x1 + textWidth, y1 + textHeight, type,linewidth),
                     text: options.text
                 };
                 break;
@@ -340,8 +353,10 @@ const Canvas = () => {
     };
 
     const getMouseCoordinates = event => {
-        const clientX = event.clientX - panOffset.x;
-        const clientY = event.clientY - panOffset.y;
+        let clientX = event.clientX - panOffset.x;
+        let clientY = event.clientY - panOffset.y;
+        clientX = clientX - 180;
+        clientY = clientY - 70
         return { clientX, clientY };
     };
 
@@ -383,7 +398,8 @@ const Canvas = () => {
             }
         } else {
             const id = elements.length;
-            const element = createElement(id, clientX, clientY, clientX, clientY, tool);
+            console.log(elements)
+            const element = createElement(id, clientX, clientY, clientX, clientY, tool,linewidth);
             setElements(prevState => [...prevState, element]);
             setSelectedElement(element);
 
@@ -417,7 +433,7 @@ const Canvas = () => {
         if (action === "drawing") {
             const index = elements.length - 1;
             const { x1, y1 } = elements[index];
-            updateElement(index, x1, y1, clientX, clientY, tool);
+            updateElement(index, x1, y1, clientX, clientY, tool,linewidth);
         } else if (action === "moving") {
             if (selectedElement.type === "pencil") {
                 const newPoints = selectedElement.points.map((_, index) => ({
@@ -437,12 +453,12 @@ const Canvas = () => {
                 const newX1 = clientX - offsetX;
                 const newY1 = clientY - offsetY;
                 const options = type === "text" ? { text: selectedElement.text } : {};
-                updateElement(id, newX1, newY1, newX1 + width, newY1 + height, type, options);
+                updateElement(id, newX1, newY1, newX1 + width, newY1 + height, type, options,linewidth);
             }
         } else if (action === "resizing") {
             const { id, type, position, ...coordinates } = selectedElement;
             const { x1, y1, x2, y2 } = resizedCoordinates(clientX, clientY, position, coordinates);
-            updateElement(id, x1, y1, x2, y2, type);
+            updateElement(id, x1, y1, x2, y2, type,linewidth);
         }
     };
 
@@ -482,12 +498,12 @@ const Canvas = () => {
         const { id, x1, y1, type } = selectedElement;
         setAction("none");
         setSelectedElement(null);
-        updateElement(id, x1, y1, null, null, type, { text: event.target.value });
+        updateElement(id, x1, y1, null, null, type, { text: event.target.value },linewidth);
     };
 
     return (
-        <div id="maindiv" className="MainBox">
-            <div style={{ position: "fixed", zIndex: 2 }}>
+        <div id="maindiv" className="bg-white" >
+            {/* <div style={{ position: "fixed", zIndex: 2 }}>
                 <input
                     type="radio"
                     id="selection"
@@ -517,7 +533,7 @@ const Canvas = () => {
             <div style={{ position: "fixed", zIndex: 2, bottom: 0, padding: 10 }}>
                 <button onClick={undo}>Undo</button>
                 <button onClick={redo}>Redo</button>
-            </div>
+            </div> */}
             {action === "writing" ? (
                 <textarea
                     ref={textAreaRef}
@@ -539,15 +555,15 @@ const Canvas = () => {
                     }}
                 />
             ) : null}
-            <div style={{ width: 800, height: 600, overflow: "auto", position: "relative" }}>
+            <div className="border rounded-lg border-2px" style={{ width: 1400, height: 800, overflow: "hidden", position: "relative" }}>
                 <canvas
                     id="canvas"
-                    width={window.innerWidth / 2} // Set your desired width here
-                    height={window.innerHeight / 2} // Set your desired height here
+                    width={window.innerWidth} // Set your desired width here
+                    height={window.innerHeight} // Set your desired height here
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
-                    style={{ position: "absolute", zIndex: 1, border: "2px solid black" }}
+                    className="border-2px rounded-2xl border"
                 >
                     Canvas
                 </canvas>
@@ -555,5 +571,3 @@ const Canvas = () => {
         </div>
     );
 };
-
-export default Canvas;

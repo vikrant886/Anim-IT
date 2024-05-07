@@ -1,7 +1,13 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
-export default function Login({loginref,logfocus,setLogfocus}) {
+export default function Login({ loginref, logfocus, setLogfocus }) {
+    const navigate = useNavigate();
+
+    const handlelogin = () =>{
+        navigate("/dash")
+    }
     return (
         <div ref={loginref} className="w-full h-[100vh] relative bg-background ">
             <div className="absolute  w-full h-full pt-32 pl-24 opacity-30 flex justify-between pr-8 items-center">
@@ -62,16 +68,24 @@ export default function Login({loginref,logfocus,setLogfocus}) {
 
                 </motion.div>
                 <div className="w-[30%] z-50 h-[60%] gap-4 border-border border-2 rounded-xl bg-background flex flex-col items-center " onClick={() => { setLogfocus(true) }} >
-                    <p className="text-heading mr-auto pl-16 font-bold">
-                        Email
-                        <span className="text-red-500 ml-2">*</span>
-                    </p>
-                    <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Email" />
-                    <p className="text-heading mr-auto pl-16 font-bold">
-                        Password
-                        <span className="text-red-500 ml-2">*</span>
-                    </p>
-                    <input type="text" className=" p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Password"  />
+                    <div className="w-full h-full flex items-center flex-col gap-8 pt-8">
+                        <p className="text-heading font-bold text-5xl font-pt">Login</p>
+                        <div className="w-full flex items-center flex-col ">
+                            <p className="text-heading mr-auto pl-16 font-bold">
+                                Email
+                                <span className="text-red-500 ml-2">*</span>
+                            </p>
+                            <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Email" />
+                        </div>
+                        <div className="w-full flex items-center flex-col">
+                            <p className="text-heading mr-auto pl-16 font-bold">
+                                Password
+                                <span className="text-red-500 ml-2">*</span>
+                            </p>
+                            <input type="text" className=" p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Password" />
+                        </div>
+                        <button onClick={handlelogin} className="bg-white"> Login</button>
+                    </div>
                 </div>
             </div>
         </div>
