@@ -15,9 +15,14 @@ const createElement = (id, x1, y1, x2, y2, type, linewidth) => {
                 type === "line"
                     ? generator.line(x1, y1, x2, y2)
                     : generator.rectangle(x1, y1, x2 - x1, y2 - y1);
+            console.log(roughElement)
+            // roughElement.op
             return { id, x1, y1, x2, y2, type, roughElement };
+        case "circle":
+            return { id, x1, y1, x2, y2, type }
+
         case "pencil":
-            return { id, type, points: [{ x: x1, y: y1 }] , linewidth: linewidth};
+            return { id, type, points: [{ x: x1, y: y1 }], linewidth: linewidth };
         case "text":
             return { id, type, x1, y1, x2, y2, text: "" };
         default:
@@ -52,6 +57,11 @@ const positionWithinElement = (x, y, element) => {
             const bottomRight = nearPoint(x, y, x2, y2, "br");
             const inside = x >= x1 && x <= x2 && y >= y1 && y <= y2 ? "inside" : null;
             return topLeft || topRight || bottomLeft || bottomRight || inside;
+        case "circle":
+            const distanceFromCenter = Math.sqrt((x - x1) ** 2 + (y - y1) ** 2);
+            const radius = Math.sqrt((x1 - x2) ** 2 + (y2 - y1) ** 2);
+            const insideCircle = distanceFromCenter <= radius;
+            return insideCircle ? "inside" : null;
         case "pencil":
             const betweenAnyPoint = element.points.some((point, index) => {
                 const nextPoint = element.points[index + 1];
@@ -143,7 +153,7 @@ const useHistory = initialState => {
 
     const undo = () => index > 0 && setIndex(prevState => prevState - 1);
     const redo = () => index < history.length - 1 && setIndex(prevState => prevState + 1);
-
+    console.log(history)
     return [history[index], setState, undo, redo];
 };
 
@@ -163,12 +173,23 @@ const getSvgPathFromStroke = stroke => {
     return d.join(" ");
 };
 
-const drawElement = (roughCanvas, context, element,linewidth) => {
+const drawElement = (roughCanvas, context, element, linewidth,selectedElement) => {
     switch (element.type) {
         case "line":
         case "rectangle":
+            if(selectedElement && selectedElement.id===element.id){
+                element.roughElement.options.stroke="#0000ff"
+            }
+            else{
+                element.roughElement.options.stroke="#000"
+            }
             roughCanvas.draw(element.roughElement);
             break;
+        case "circle":
+            console.log(element);
+            const radius = Math.abs(element.x2 - element.x1) / 2;
+        // roughCanvas.circle(element.x1, element.y1, radius);
+
         case "pencil":
             const stroke = getSvgPathFromStroke(getStroke(element.points, {
                 size: linewidth,
@@ -224,10 +245,10 @@ const usePressedKeys = () => {
 
 export default function Canvas() {
     const [elements, setElements, undo, redo] = useHistory([]);
-    const [action, setAction] = useState("none");
+    // const [action, setAction] = useState("none");
     // const [tool, setTool] = useState("rectangle");
-    const { tool, setTool, undocall, redocall , linewidth} = useContext(ProdContext)
-    const [selectedElement, setSelectedElement] = useState(null);
+    const canvasref = useRef(null)
+    const { tool, setTool, undocall, redocall, linewidth ,action, setAction ,selectedElement,setSelectedElement } = useContext(ProdContext)
     const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 });
     const [startPanMousePosition, setStartPanMousePosition] = React.useState({ x: 0, y: 0 });
     const textAreaRef = useRef();
@@ -268,15 +289,15 @@ export default function Canvas() {
         const canvas = document.getElementById("canvas");
         const context = canvas.getContext("2d");
         const roughCanvas = rough.canvas(canvas);
-
+        generator.rectangle(10, 120, 100, 100, { fill: 'red' });
         context.clearRect(0, 0, canvas.width, canvas.height);
 
         context.save();
         context.translate(panOffset.x, panOffset.y);
-
+        console.log(elements)
         elements.forEach(element => {
-            if (action === "writing" && selectedElement.id === element.id) return;
-            drawElement(roughCanvas, context, element,linewidth);
+            if (selectedElement &&  action === "writing" && selectedElement.id === element.id) return;
+            drawElement(roughCanvas, context, element, linewidth,selectedElement);
         });
         context.restore();
     }, [elements, action, selectedElement, panOffset]);
@@ -297,6 +318,10 @@ export default function Canvas() {
             document.removeEventListener("keydown", undoRedoFunction);
         };
     }, [undo, redo]);
+
+    useEffect(() => {
+        console.log("change ", elements)
+    }, [elements])
 
     useEffect(() => {
         const panFunction = event => {
@@ -322,15 +347,17 @@ export default function Canvas() {
         }
     }, [action, selectedElement]);
 
-    const updateElement = (id, x1, y1, x2, y2, type, options,linewidth) => {
+    const updateElement = (id, x1, y1, x2, y2, type, options, linewidth) => {
         const elementsCopy = [...elements];
         // console.log({x1,y1,x2,y2})
         // x2=x2-75;
         switch (type) {
             case "line":
             case "rectangle":
-                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type,linewidth);
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, linewidth);
                 break;
+            case "circle":
+                elementsCopy[id] = createElement()
             case "pencil":
                 elementsCopy[id].points = [...elementsCopy[id].points, { x: x2, y: y2 }];
                 break;
@@ -341,7 +368,7 @@ export default function Canvas() {
                     .measureText(options.text).width;
                 const textHeight = 24;
                 elementsCopy[id] = {
-                    ...createElement(id, x1, y1, x1 + textWidth, y1 + textHeight, type,linewidth),
+                    ...createElement(id, x1, y1, x1 + textWidth, y1 + textHeight, type, linewidth),
                     text: options.text
                 };
                 break;
@@ -350,18 +377,31 @@ export default function Canvas() {
         }
 
         setElements(elementsCopy, true);
+        setSelectedElement(prev=>({
+            ...prev,
+            x1,y1,x2,y2
+        }))
     };
 
     const getMouseCoordinates = event => {
-        let clientX = event.clientX - panOffset.x;
-        let clientY = event.clientY - panOffset.y;
-        clientX = clientX - 180;
-        clientY = clientY - 70
+        // console.log(event.pageX)
+        // console.log(event.pageY,"pagey")
+        // console.
+        const val = canvasref.current.offsetLeft
+        // console.log(val)
+        // console.logg
+        // console.log(event.clientX,panOffset.x)
+        let clientX = event.clientX
+        let clientY = event.clientY
+        // console.log({clientX,clientY})
+        clientX = clientX - val
+        clientY = clientY
         return { clientX, clientY };
     };
 
     const handleMouseDown = event => {
         if (action === "writing") return;
+
 
         const { clientX, clientY } = getMouseCoordinates(event);
 
@@ -396,10 +436,12 @@ export default function Canvas() {
                     setAction("resizing");
                 }
             }
+            else{
+                setSelectedElement(null)
+            }
         } else {
             const id = elements.length;
-            console.log(elements)
-            const element = createElement(id, clientX, clientY, clientX, clientY, tool,linewidth);
+            const element = createElement(id, clientX, clientY, clientX, clientY, tool, linewidth);
             setElements(prevState => [...prevState, element]);
             setSelectedElement(element);
 
@@ -433,7 +475,7 @@ export default function Canvas() {
         if (action === "drawing") {
             const index = elements.length - 1;
             const { x1, y1 } = elements[index];
-            updateElement(index, x1, y1, clientX, clientY, tool,linewidth);
+            updateElement(index, x1, y1, clientX, clientY, tool, linewidth);
         } else if (action === "moving") {
             if (selectedElement.type === "pencil") {
                 const newPoints = selectedElement.points.map((_, index) => ({
@@ -453,12 +495,12 @@ export default function Canvas() {
                 const newX1 = clientX - offsetX;
                 const newY1 = clientY - offsetY;
                 const options = type === "text" ? { text: selectedElement.text } : {};
-                updateElement(id, newX1, newY1, newX1 + width, newY1 + height, type, options,linewidth);
+                updateElement(id, newX1, newY1, newX1 + width, newY1 + height, type, options, linewidth);
             }
         } else if (action === "resizing") {
             const { id, type, position, ...coordinates } = selectedElement;
             const { x1, y1, x2, y2 } = resizedCoordinates(clientX, clientY, position, coordinates);
-            updateElement(id, x1, y1, x2, y2, type,linewidth);
+            updateElement(id, x1, y1, x2, y2, type, linewidth);
         }
     };
 
@@ -491,18 +533,18 @@ export default function Canvas() {
         if (action === "writing") return;
 
         setAction("none");
-        setSelectedElement(null);
+        // setSelectedElement(null);
     };
 
     const handleBlur = event => {
         const { id, x1, y1, type } = selectedElement;
         setAction("none");
         setSelectedElement(null);
-        updateElement(id, x1, y1, null, null, type, { text: event.target.value },linewidth);
+        updateElement(id, x1, y1, null, null, type, { text: event.target.value }, linewidth);
     };
 
     return (
-        <div id="maindiv" className="bg-white" >
+        <div ref={canvasref} id="maindiv" className="bg-first w-full flex justify-center h-full" >
             {/* <div style={{ position: "fixed", zIndex: 2 }}>
                 <input
                     type="radio"
@@ -555,9 +597,10 @@ export default function Canvas() {
                     }}
                 />
             ) : null}
-            <div className="border rounded-lg border-2px" style={{ width: 1400, height: 800, overflow: "hidden", position: "relative" }}>
+            <div className="border rounded-lg border-2px bg-white" style={{ height: 800, overflow: "hidden", position: "relative" }}>
                 <canvas
                     id="canvas"
+                    // ref={canvasref}
                     width={window.innerWidth} // Set your desired width here
                     height={window.innerHeight} // Set your desired height here
                     onMouseDown={handleMouseDown}
