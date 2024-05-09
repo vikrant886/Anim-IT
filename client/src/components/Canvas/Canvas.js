@@ -393,8 +393,9 @@ export default function Canvas() {
         // console.log(val)
         // console.logg
         // console.log(event.clientX,panOffset.x)
-        let clientX = event.clientX
-        let clientY = event.clientY
+        // console.log(panOffset.x,panOffset.y)
+        let clientX = event.clientX-panOffset.x;
+        let clientY = event.clientY-panOffset.y
         // console.log({clientX,clientY})
         clientX = clientX - val
         clientY = clientY
@@ -633,16 +634,16 @@ export default function Canvas() {
                     }}
                 />
             ) : null}
-            <div className="border mb-auto rounded-lg border-2px bg-white" style={{ height: 800, overflow: "hidden", position: "relative" }}>
+            <div className="border mb-auto rounded-lg border-2px bg-second" style={{ height: 550, overflow: "hidden", position: "relative" }}>
                 <canvas
                     id="canvas"
                     // ref={canvasref}
                     width={window.innerWidth} // Set your desired width here
-                    height={window.innerHeight} // Set your desired height here
+                    height={window.innerHeight/1.3} // Set your desired height here
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
-                    className="border-2px rounded-2xl border"
+                    className="border-2px rounded-2xl border bg-white"
                 >
                     Canvas
                 </canvas>
