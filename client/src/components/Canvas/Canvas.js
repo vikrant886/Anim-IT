@@ -153,7 +153,7 @@ const useHistory = initialState => {
 
     const undo = () => index > 0 && setIndex(prevState => prevState - 1);
     const redo = () => index < history.length - 1 && setIndex(prevState => prevState + 1);
-    console.log(history)
+    // console.log(history)
     return [history[index], setState, undo, redo];
 };
 
@@ -173,15 +173,15 @@ const getSvgPathFromStroke = stroke => {
     return d.join(" ");
 };
 
-const drawElement = (roughCanvas, context, element, linewidth,selectedElement) => {
+const drawElement = (roughCanvas, context, element, linewidth, selectedElement) => {
     switch (element.type) {
         case "line":
         case "rectangle":
-            if(selectedElement && selectedElement.id===element.id){
-                element.roughElement.options.stroke="#0000ff"
+            if (selectedElement && selectedElement.id === element.id) {
+                element.roughElement.options.stroke = "#0000ff"
             }
-            else{
-                element.roughElement.options.stroke="#000"
+            else {
+                element.roughElement.options.stroke = "#000"
             }
             roughCanvas.draw(element.roughElement);
             break;
@@ -245,10 +245,12 @@ const usePressedKeys = () => {
 
 export default function Canvas() {
     const [elements, setElements, undo, redo] = useHistory([]);
+    const [currframe, setCurrframe] = useState(null)
     // const [action, setAction] = useState("none");
     // const [tool, setTool] = useState("rectangle");
+    const [frame, setFrame] = useState([])
     const canvasref = useRef(null)
-    const { tool, setTool, undocall, redocall, linewidth ,action, setAction ,selectedElement,setSelectedElement } = useContext(ProdContext)
+    const { tool, setTool, undocall, redocall, linewidth, action, setAction, selectedElement, setSelectedElement } = useContext(ProdContext)
     const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 });
     const [startPanMousePosition, setStartPanMousePosition] = React.useState({ x: 0, y: 0 });
     const textAreaRef = useRef();
@@ -296,8 +298,8 @@ export default function Canvas() {
         context.translate(panOffset.x, panOffset.y);
         console.log(elements)
         elements.forEach(element => {
-            if (selectedElement &&  action === "writing" && selectedElement.id === element.id) return;
-            drawElement(roughCanvas, context, element, linewidth,selectedElement);
+            if (selectedElement && action === "writing" && selectedElement.id === element.id) return;
+            drawElement(roughCanvas, context, element, linewidth, selectedElement);
         });
         context.restore();
     }, [elements, action, selectedElement, panOffset]);
@@ -377,9 +379,9 @@ export default function Canvas() {
         }
 
         setElements(elementsCopy, true);
-        setSelectedElement(prev=>({
+        setSelectedElement(prev => ({
             ...prev,
-            x1,y1,x2,y2
+            x1, y1, x2, y2
         }))
     };
 
@@ -436,7 +438,7 @@ export default function Canvas() {
                     setAction("resizing");
                 }
             }
-            else{
+            else {
                 setSelectedElement(null)
             }
         } else {
@@ -543,8 +545,42 @@ export default function Canvas() {
         updateElement(id, x1, y1, null, null, type, { text: event.target.value }, linewidth);
     };
 
+    const handlechange = (index) => {
+        console.log(frame, index);
+        setCurrframe(index);
+        setElements(frame[index]);
+    };
+
+    const handleadd = () => {
+        if (currframe !== null && frame[currframe] !== elements) {
+            console.log(currframe, frame[currframe], elements, "if");
+            alert("changed");
+            const newFrame = [...frame];
+            newFrame[currframe] = elements;
+            setFrame(newFrame);
+            setCurrframe(null)
+            setElements([])
+        } else if(currframe!==null && frame[currframe]===elements){
+            setElements([])
+            setCurrframe(null)
+        } 
+        else {
+            console.log(elements, "elements");
+            console.log(currframe, frame[currframe], elements, "else");
+            const newFrame = [...frame];
+            newFrame.push(elements);
+            setFrame(newFrame);
+            setElements([])
+        }
+        // console.log(frame);
+    };
+
+    useEffect(() => {
+        console.log(frame)
+    }, [frame])
+
     return (
-        <div ref={canvasref} id="maindiv" className="bg-first w-full flex justify-center h-full" >
+        <div ref={canvasref} id="maindiv" className="bg-first w-full flex flex-col justify-center h-full" >
             {/* <div style={{ position: "fixed", zIndex: 2 }}>
                 <input
                     type="radio"
@@ -597,7 +633,7 @@ export default function Canvas() {
                     }}
                 />
             ) : null}
-            <div className="border rounded-lg border-2px bg-white" style={{ height: 800, overflow: "hidden", position: "relative" }}>
+            <div className="border mb-auto rounded-lg border-2px bg-white" style={{ height: 800, overflow: "hidden", position: "relative" }}>
                 <canvas
                     id="canvas"
                     // ref={canvasref}
@@ -611,6 +647,17 @@ export default function Canvas() {
                     Canvas
                 </canvas>
             </div>
+            <div className="text-white">
+                <button onClick={handleadd}>
+                    Add frame
+                </button>
+                {frame && frame.map((val, index) => (
+                    <div key={index} onClick={() => { handlechange(index) }}>
+                        {index}
+                    </div>
+                ))}
+            </div>
+
         </div>
     );
 };
