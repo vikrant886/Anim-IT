@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Home from "./components/pages/home";
-import Dash from "./components/pages/Dashboard";
+import Dash from "./components/pages/Dashboard/Dashboard";
 import Production from "./components/pages/prod";
 
 function App() {

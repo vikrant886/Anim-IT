@@ -8,6 +8,7 @@ import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import Login from "../login";
 import Feature from "../feature";
 import { useIsInViewport } from "../inview";
+import SignUp from "../signup";
 
 
 export default function Home() {
@@ -19,9 +20,15 @@ export default function Home() {
     const featureinview = useIsInViewport(featureref)
     const loginref = useRef(null)
     const logininview = useIsInViewport(loginref)
-    const [logfocus, setLogfocus] = useState(false)
+    const [logfocus, setLogfocus] = useState(true)
+    const [showLogin, setShowLogin] = useState(true);
     const [ani, setAni] = useState(first)
     const inview = useInView(aboutref)
+    
+    // const ToggleLogin = () =>{
+    //     setShowLogin(!showLogin)
+    // }
+    
     useEffect(()=>{
         if(aboutinview){
             setLogfocus(false)
@@ -43,7 +50,6 @@ export default function Home() {
                     <Header className="mt-auto" loginref={loginref} homeref={homeref} aboutref={aboutref} featureref={featureref} />
                     <motion.div
                         className="text-heading font-pt text-7xl pt-24 flex flex-row items-center justify-center h-full"
-                    // whileHover={{ scale: 1.1 }}
                     >
                         <div className="w-[65%] h-full flex gap-8 flex-col pt-24 pl-32">
                             <motion.div
@@ -102,7 +108,11 @@ export default function Home() {
                     </p>
                 </div>
                 <Feature featureref={featureref}/>
-                <Login loginref={loginref} logfocus={logfocus} setLogfocus={setLogfocus}/>
+                {showLogin ? (
+                    <Login loginref={loginref} logfocus={logfocus} setShowLogin={setShowLogin} setLogfocus={setLogfocus} />
+                ) : (
+                    <SignUp loginref={loginref} logfocus={logfocus} setLogfocus={setLogfocus} setShowLogin={setShowLogin} />
+                )}
                
             </div>
             <div className="flex w-[5%] fixed h-full bg-background justify-center items-center  flex-col gap-4 p-4">

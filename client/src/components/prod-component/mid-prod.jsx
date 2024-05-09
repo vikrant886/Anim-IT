@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { ProdContext } from "../context/prodContext";
 import Canvas from "../Canvas/Canvas";
-import DrawingCanvas from "../canvas/canvas-1";
+// import DrawingCanvas from "../Canvas/canvas-1";
 
 export default function Mprod(){
     const {tool,setTool} = useContext(ProdContext)
