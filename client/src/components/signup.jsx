@@ -1,31 +1,12 @@
 import React,{useState} from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
-export default function Login({ loginref, logfocus, setLogfocus ,setShowLogin }) {
-    
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
-    
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-          const response = await axios.post('http://localhost:8000/api/auth/login', { email, password });
-          const token = response.data.token;
-          localStorage.setItem('token', token);
-        navigate("/dash");
-        } catch (err) {
-          setError(err.response.data.message);
-        }
-    }
+export default function SignUp({ loginref, logfocus, setLogfocus, setShowLogin}) {
     const navigate = useNavigate();
-
     const handlelogin = () =>{
         navigate("/dash")
     }
-
     return (
         <div ref={loginref} className="w-full h-[100vh] relative bg-background ">
             <div className="absolute  w-full h-full pt-32 pl-24 opacity-30 flex justify-between pr-8 items-center">
@@ -88,29 +69,36 @@ export default function Login({ loginref, logfocus, setLogfocus ,setShowLogin })
                 
                     <div className="w-[30%] z-50 h-[60%] gap-4 border-border border-2 rounded-xl bg-background flex flex-col items-center " onClick={() => { setLogfocus(true) }}>
                         <div className="w-full h-full flex items-center flex-col gap-8 pt-8">
-                            <p className="text-heading font-bold text-5xl font-pt">Login</p>
+                            <p className="text-heading font-bold text-5xl font-pt">Sign Up</p>
+                            <div className="w-full flex items-center flex-col ">
+                                <p className="text-heading mr-auto pl-16 font-bold">
+                                    Name
+                                    <span className="text-red-500 ml-2">*</span>
+                                </p>
+                                <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Name" />
+                            </div>
                             <div className="w-full flex items-center flex-col ">
                                 <p className="text-heading mr-auto pl-16 font-bold">
                                     Email
                                     <span className="text-red-500 ml-2">*</span>
                                 </p>
-                                <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Email" value={email}  onChange={(e) => setEmail(e.target.value)}/>
+                                <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Email" />
                             </div>
                             <div className="w-full flex items-center flex-col">
                                 <p className="text-heading mr-auto pl-16 font-bold">
                                     Password
                                     <span className="text-red-500 ml-2">*</span>
                                 </p>
-                                <input type="text" className=" p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                                <input type="text" className=" p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Password" />
                             </div>
-                            <button onClick={handleSubmit} className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"> Login</button>
-                            <button className="text-blue-500" onClick={()=>{setShowLogin(false)}}>
-                                New to Anim-it ? Register 
+                            <button onClick={handlelogin} className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"> SignUp</button>
+                            <button className="text-blue-500" onClick={()=>{setShowLogin(true)}}>
+                               Already a user ? Log in
                             </button>
                         </div>
                     </div>
                 )
             </div>
         </div>
-    );
+    )
 }
