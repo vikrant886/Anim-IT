@@ -24,16 +24,16 @@ export default function Home() {
     const [showLogin, setShowLogin] = useState(true);
     const [ani, setAni] = useState(first)
     const inview = useInView(aboutref)
-    
+
     // const ToggleLogin = () =>{
     //     setShowLogin(!showLogin)
     // }
-    
-    useEffect(()=>{
-        if(aboutinview){
+
+    useEffect(() => {
+        if (aboutinview) {
             setLogfocus(false)
         }
-    },[aboutinview])
+    }, [aboutinview])
     useEffect(() => {
         const intervalId = setInterval(() => {
             setAni((prevAni) => (prevAni === first ? second : first));
@@ -103,23 +103,26 @@ export default function Home() {
                     <p className="text-text1 text-6xl">
                         {'{ About Us }'}
                     </p>
-                    <p ref={aboutref} className="text-heading text-4xl leading-loose">
-                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates dolores nostrum debitis cupiditate veritatis corrupti incidunt? Nam nesciunt voluptates laborum ipsa optio, esse officiis odio dolor nemo voluptatem culpa eum animi quo natus nisi rem et quisquam pariatur dicta quod quidem. Ad, deserunt. Dolor, consequatur nulla! Aut dolore quas nihil rem, voluptatibus natus. Nesciunt quo adipisci cupiditate suscipit corrupti voluptas.
-                    </p>
+                    <div>
+                        <p ref={aboutref} className="text-heading text-4xl leading-loose">Welcome to Anim-It, your gateway to effortless 2D animation creation! Designed with beginners in mind, Anim-It combines user-friendliness with cutting-edge technology. Our integration of generative AI ensures stunning visuals without taxing your hardware. Dive into a world where creativity knows no bounds. Whether you're a novice or a seasoned animator, Anim-It empowers you to bring your imagination to life with ease. Start animating today with Anim-It!</p>
+                        <p className="text-heading text-4xl leading-loose">
+                            Within Anim-It, a team of computer science students, driven by passion, is committed to reshaping animation accessibility through innovation and expertise.
+                        </p>
+                    </div>
                 </div>
-                <Feature featureref={featureref}/>
+                <Feature featureref={featureref} />
                 {showLogin ? (
                     <Login loginref={loginref} logfocus={logfocus} setShowLogin={setShowLogin} setLogfocus={setLogfocus} />
                 ) : (
                     <SignUp loginref={loginref} logfocus={logfocus} setLogfocus={setLogfocus} setShowLogin={setShowLogin} />
                 )}
-               
+
             </div>
             <div className="flex w-[5%] fixed h-full bg-background justify-center items-center  flex-col gap-4 p-4">
-                <motion.div onClick={()=>{homeref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${homeinview?"opacity-90":"opacity-20"}` }></motion.div>
-                <motion.div onClick={()=>{aboutref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${aboutinview?"opacity-90":"opacity-20"}` }></motion.div>
-                <motion.div onClick={()=>{featureref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${featureinview?"opacity-90":"opacity-20"}`}></motion.div>
-                <motion.div onClick={()=>{loginref.current?.scrollIntoView({behavior:"smooth"})}} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${logininview?"opacity-90":"opacity-20"}`}></motion.div>
+                <motion.div onClick={() => { homeref.current?.scrollIntoView({ behavior: "smooth" }) }} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${homeinview ? "opacity-90" : "opacity-20"}`}></motion.div>
+                <motion.div onClick={() => { aboutref.current?.scrollIntoView({ behavior: "smooth" }) }} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${aboutinview ? "opacity-90" : "opacity-20"}`}></motion.div>
+                <motion.div onClick={() => { featureref.current?.scrollIntoView({ behavior: "smooth" }) }} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${featureinview ? "opacity-90" : "opacity-20"}`}></motion.div>
+                <motion.div onClick={() => { loginref.current?.scrollIntoView({ behavior: "smooth" }) }} whileHover={{ scale: 1.2 }} className={`w-4 h-4 rounded-full transition-all duration-300 bg-heading  ${logininview ? "opacity-90" : "opacity-20"}`}></motion.div>
             </div>
         </div>
     )

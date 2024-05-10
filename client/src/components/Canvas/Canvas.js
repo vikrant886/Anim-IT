@@ -1,7 +1,14 @@
-import React, { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+    useContext,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from "react";
 import rough from "roughjs/bundled/rough.esm";
 import getStroke from "perfect-freehand";
 import { ProdContext } from "../context/prodContext";
+import { Play, Plus, Pause } from "lucide-react";
 
 const generator = rough.generator();
 // const drawingAreaWidth = window.innerWidth / 2; // Define the width of the drawing area
@@ -15,11 +22,11 @@ const createElement = (id, x1, y1, x2, y2, type, linewidth) => {
                 type === "line"
                     ? generator.line(x1, y1, x2, y2)
                     : generator.rectangle(x1, y1, x2 - x1, y2 - y1);
-            console.log(roughElement)
+            console.log(roughElement);
             // roughElement.op
             return { id, x1, y1, x2, y2, type, roughElement };
         case "circle":
-            return { id, x1, y1, x2, y2, type }
+            return { id, x1, y1, x2, y2, type };
 
         case "pencil":
             return { id, type, points: [{ x: x1, y: y1 }], linewidth: linewidth };
@@ -58,15 +65,17 @@ const positionWithinElement = (x, y, element) => {
             const inside = x >= x1 && x <= x2 && y >= y1 && y <= y2 ? "inside" : null;
             return topLeft || topRight || bottomLeft || bottomRight || inside;
         case "circle":
-            const distanceFromCenter = Math.sqrt((x - x1) ** 2 + (y - y1) ** 2);
-            const radius = Math.sqrt((x1 - x2) ** 2 + (y2 - y1) ** 2);
+            const distanceFromCenter = Math.sqrt((x - x1) * 2 + (y - y1) * 2);
+            const radius = Math.sqrt((x1 - x2) * 2 + (y2 - y1) * 2);
             const insideCircle = distanceFromCenter <= radius;
             return insideCircle ? "inside" : null;
         case "pencil":
             const betweenAnyPoint = element.points.some((point, index) => {
                 const nextPoint = element.points[index + 1];
                 if (!nextPoint) return false;
-                return onLine(point.x, point.y, nextPoint.x, nextPoint.y, x, y, 5) != null;
+                return (
+                    onLine(point.x, point.y, nextPoint.x, nextPoint.y, x, y, 5) != null
+                );
             });
             return betweenAnyPoint ? "inside" : null;
         case "text":
@@ -76,15 +85,19 @@ const positionWithinElement = (x, y, element) => {
     }
 };
 
-const distance = (a, b) => Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+const distance = (a, b) =>
+    Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
 
 const getElementAtPosition = (x, y, elements) => {
     return elements
-        .map(element => ({ ...element, position: positionWithinElement(x, y, element) }))
-        .find(element => element.position !== null);
+        .map((element) => ({
+            ...element,
+            position: positionWithinElement(x, y, element),
+        }))
+        .find((element) => element.position !== null);
 };
 
-const adjustElementCoordinates = element => {
+const adjustElementCoordinates = (element) => {
     const { type, x1, y1, x2, y2 } = element;
     if (type === "rectangle") {
         const minX = Math.min(x1, x2);
@@ -101,7 +114,7 @@ const adjustElementCoordinates = element => {
     }
 };
 
-const cursorForPosition = position => {
+const cursorForPosition = (position) => {
     switch (position) {
         case "tl":
         case "br":
@@ -134,12 +147,13 @@ const resizedCoordinates = (clientX, clientY, position, coordinates) => {
     }
 };
 
-const useHistory = initialState => {
+const useHistory = (initialState) => {
     const [index, setIndex] = useState(0);
     const [history, setHistory] = useState([initialState]);
 
     const setState = (action, overwrite = false) => {
-        const newState = typeof action === "function" ? action(history[index]) : action;
+        const newState =
+            typeof action === "function" ? action(history[index]) : action;
         if (overwrite) {
             const historyCopy = [...history];
             historyCopy[index] = newState;
@@ -147,17 +161,18 @@ const useHistory = initialState => {
         } else {
             const updatedState = [...history].slice(0, index + 1);
             setHistory([...updatedState, newState]);
-            setIndex(prevState => prevState + 1);
+            setIndex((prevState) => prevState + 1);
         }
     };
 
-    const undo = () => index > 0 && setIndex(prevState => prevState - 1);
-    const redo = () => index < history.length - 1 && setIndex(prevState => prevState + 1);
+    const undo = () => index > 0 && setIndex((prevState) => prevState - 1);
+    const redo = () =>
+        index < history.length - 1 && setIndex((prevState) => prevState + 1);
     // console.log(history)
     return [history[index], setState, undo, redo];
 };
 
-const getSvgPathFromStroke = stroke => {
+const getSvgPathFromStroke = (stroke) => {
     if (!stroke.length) return "";
 
     const d = stroke.reduce(
@@ -173,15 +188,20 @@ const getSvgPathFromStroke = stroke => {
     return d.join(" ");
 };
 
-const drawElement = (roughCanvas, context, element, linewidth, selectedElement) => {
+const drawElement = (
+    roughCanvas,
+    context,
+    element,
+    linewidth,
+    selectedElement
+) => {
     switch (element.type) {
         case "line":
         case "rectangle":
             if (selectedElement && selectedElement.id === element.id) {
-                element.roughElement.options.stroke = "#0000ff"
-            }
-            else {
-                element.roughElement.options.stroke = "#000"
+                element.roughElement.options.stroke = "#0000ff";
+            } else {
+                element.roughElement.options.stroke = "#000";
             }
             roughCanvas.draw(element.roughElement);
             break;
@@ -191,10 +211,12 @@ const drawElement = (roughCanvas, context, element, linewidth, selectedElement) 
         // roughCanvas.circle(element.x1, element.y1, radius);
 
         case "pencil":
-            const stroke = getSvgPathFromStroke(getStroke(element.points, {
-                size: linewidth,
-                thinning: 0.7,
-            }));
+            const stroke = getSvgPathFromStroke(
+                getStroke(element.points, {
+                    size: linewidth,
+                    thinning: 0.7,
+                })
+            );
             context.fill(new Path2D(stroke));
             break;
         case "text":
@@ -207,18 +229,18 @@ const drawElement = (roughCanvas, context, element, linewidth, selectedElement) 
     }
 };
 
-const adjustmentRequired = type => ["line", "rectangle"].includes(type);
+const adjustmentRequired = (type) => ["line", "rectangle"].includes(type);
 
 const usePressedKeys = () => {
     const [pressedKeys, setPressedKeys] = useState(new Set());
 
     useEffect(() => {
-        const handleKeyDown = event => {
-            setPressedKeys(prevKeys => new Set(prevKeys).add(event.key));
+        const handleKeyDown = (event) => {
+            setPressedKeys((prevKeys) => new Set(prevKeys).add(event.key));
         };
 
-        const handleKeyUp = event => {
-            setPressedKeys(prevKeys => {
+        const handleKeyUp = (event) => {
+            setPressedKeys((prevKeys) => {
                 const updatedKeys = new Set(prevKeys);
                 updatedKeys.delete(event.key);
                 return updatedKeys;
@@ -245,35 +267,49 @@ const usePressedKeys = () => {
 
 export default function Canvas() {
     const [elements, setElements, undo, redo] = useHistory([]);
-    const [currframe, setCurrframe] = useState(null)
+    const [currframe, setCurrframe] = useState(null);
     // const [action, setAction] = useState("none");
     // const [tool, setTool] = useState("rectangle");
-    const [frame, setFrame] = useState([])
-    const canvasref = useRef(null)
-    const { tool, setTool, undocall, redocall, linewidth, action, setAction, selectedElement, setSelectedElement } = useContext(ProdContext)
+    const [frame, setFrame] = useState([]);
+    const canvasref = useRef(null);
+    const {
+        tool,
+        setTool,
+        undocall,
+        redocall,
+        linewidth,
+        action,
+        setAction,
+        selectedElement,
+        setSelectedElement,
+    } = useContext(ProdContext);
     const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 });
-    const [startPanMousePosition, setStartPanMousePosition] = React.useState({ x: 0, y: 0 });
+    const [startPanMousePosition, setStartPanMousePosition] = React.useState({
+        x: 0,
+        y: 0,
+    });
     const textAreaRef = useRef();
     const pressedKeys = usePressedKeys();
+    const [isplaying, setisplaying] = useState(false);
+    const [playLinePosition, setPlayLinePosition] = useState(0);
 
     useEffect(() => {
         undo();
-    }, [undocall])
+    }, [undocall]);
     useEffect(() => {
-        redo()
-    }, [redocall])
+        redo();
+    }, [redocall]);
 
     useEffect(() => {
         const canvas = document.getElementById("canvas");
         const ok = document.getElementById("maindiv");
         // Disable panning on the canvas
-        const handleWheel = event => {
+        const handleWheel = (event) => {
             event.preventDefault();
             event.stopPropagation();
-
         };
 
-        const handleMouseDown = event => {
+        const handleMouseDown = (event) => {
             event.preventDefault();
         };
 
@@ -291,21 +327,26 @@ export default function Canvas() {
         const canvas = document.getElementById("canvas");
         const context = canvas.getContext("2d");
         const roughCanvas = rough.canvas(canvas);
-        generator.rectangle(10, 120, 100, 100, { fill: 'red' });
+        generator.rectangle(10, 120, 100, 100, { fill: "red" });
         context.clearRect(0, 0, canvas.width, canvas.height);
 
         context.save();
         context.translate(panOffset.x, panOffset.y);
-        console.log(elements)
-        elements.forEach(element => {
-            if (selectedElement && action === "writing" && selectedElement.id === element.id) return;
+        console.log(elements);
+        elements.forEach((element) => {
+            if (
+                selectedElement &&
+                action === "writing" &&
+                selectedElement.id === element.id
+            )
+                return;
             drawElement(roughCanvas, context, element, linewidth, selectedElement);
         });
         context.restore();
     }, [elements, action, selectedElement, panOffset]);
 
     useEffect(() => {
-        const undoRedoFunction = event => {
+        const undoRedoFunction = (event) => {
             if ((event.metaKey || event.ctrlKey) && event.key === "z") {
                 if (event.shiftKey) {
                     redo();
@@ -322,14 +363,14 @@ export default function Canvas() {
     }, [undo, redo]);
 
     useEffect(() => {
-        console.log("change ", elements)
-    }, [elements])
+        console.log("change ", elements);
+    }, [elements]);
 
     useEffect(() => {
-        const panFunction = event => {
-            setPanOffset(prevState => ({
+        const panFunction = (event) => {
+            setPanOffset((prevState) => ({
                 x: prevState.x - event.deltaX,
-                y: prevState.y - event.deltaY
+                y: prevState.y - event.deltaY,
             }));
         };
 
@@ -338,7 +379,6 @@ export default function Canvas() {
             document.removeEventListener("wheel", panFunction);
         };
     }, []);
-
     useEffect(() => {
         const textArea = textAreaRef.current;
         if (action === "writing") {
@@ -359,9 +399,12 @@ export default function Canvas() {
                 elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, linewidth);
                 break;
             case "circle":
-                elementsCopy[id] = createElement()
+                elementsCopy[id] = createElement();
             case "pencil":
-                elementsCopy[id].points = [...elementsCopy[id].points, { x: x2, y: y2 }];
+                elementsCopy[id].points = [
+                    ...elementsCopy[id].points,
+                    { x: x2, y: y2 },
+                ];
                 break;
             case "text":
                 const textWidth = document
@@ -370,8 +413,16 @@ export default function Canvas() {
                     .measureText(options.text).width;
                 const textHeight = 24;
                 elementsCopy[id] = {
-                    ...createElement(id, x1, y1, x1 + textWidth, y1 + textHeight, type, linewidth),
-                    text: options.text
+                    ...createElement(
+                        id,
+                        x1,
+                        y1,
+                        x1 + textWidth,
+                        y1 + textHeight,
+                        type,
+                        linewidth
+                    ),
+                    text: options.text,
                 };
                 break;
             default:
@@ -379,32 +430,34 @@ export default function Canvas() {
         }
 
         setElements(elementsCopy, true);
-        setSelectedElement(prev => ({
+        setSelectedElement((prev) => ({
             ...prev,
-            x1, y1, x2, y2
-        }))
+            x1,
+            y1,
+            x2,
+            y2,
+        }));
     };
 
-    const getMouseCoordinates = event => {
+    const getMouseCoordinates = (event) => {
         // console.log(event.pageX)
         // console.log(event.pageY,"pagey")
         // console.
-        const val = canvasref.current.offsetLeft
+        const val = canvasref.current.offsetLeft;
         // console.log(val)
         // console.logg
         // console.log(event.clientX,panOffset.x)
         // console.log(panOffset.x,panOffset.y)
-        let clientX = event.clientX-panOffset.x;
-        let clientY = event.clientY-panOffset.y
+        let clientX = event.clientX - panOffset.x;
+        let clientY = event.clientY - panOffset.y;
         // console.log({clientX,clientY})
-        clientX = clientX - val
-        clientY = clientY
+        clientX = clientX - val;
+        clientY = clientY;
         return { clientX, clientY };
     };
 
-    const handleMouseDown = event => {
+    const handleMouseDown = (event) => {
         if (action === "writing") return;
-
 
         const { clientX, clientY } = getMouseCoordinates(event);
 
@@ -423,36 +476,43 @@ export default function Canvas() {
             const element = getElementAtPosition(clientX, clientY, elements);
             if (element) {
                 if (element.type === "pencil") {
-                    const xOffsets = element.points.map(point => clientX - point.x);
-                    const yOffsets = element.points.map(point => clientY - point.y);
+                    const xOffsets = element.points.map((point) => clientX - point.x);
+                    const yOffsets = element.points.map((point) => clientY - point.y);
                     setSelectedElement({ ...element, xOffsets, yOffsets });
                 } else {
                     const offsetX = clientX - element.x1;
                     const offsetY = clientY - element.y1;
                     setSelectedElement({ ...element, offsetX, offsetY });
                 }
-                setElements(prevState => prevState);
+                setElements((prevState) => prevState);
 
                 if (element.position === "inside") {
                     setAction("moving");
                 } else {
                     setAction("resizing");
                 }
-            }
-            else {
-                setSelectedElement(null)
+            } else {
+                setSelectedElement(null);
             }
         } else {
             const id = elements.length;
-            const element = createElement(id, clientX, clientY, clientX, clientY, tool, linewidth);
-            setElements(prevState => [...prevState, element]);
+            const element = createElement(
+                id,
+                clientX,
+                clientY,
+                clientX,
+                clientY,
+                tool,
+                linewidth
+            );
+            setElements((prevState) => [...prevState, element]);
             setSelectedElement(element);
 
             setAction(tool === "text" ? "writing" : "drawing");
         }
     };
 
-    const handleMouseMove = event => {
+    const handleMouseMove = (event) => {
         const { clientX, clientY } = getMouseCoordinates(event);
 
         // // Check if the mouse is within the drawing area
@@ -465,14 +525,16 @@ export default function Canvas() {
             const deltaY = clientY - startPanMousePosition.y;
             setPanOffset({
                 x: panOffset.x + deltaX,
-                y: panOffset.y + deltaY
+                y: panOffset.y + deltaY,
             });
             return;
         }
 
         if (tool === "selection") {
             const element = getElementAtPosition(clientX, clientY, elements);
-            event.target.style.cursor = element ? cursorForPosition(element.position) : "default";
+            event.target.style.cursor = element
+                ? cursorForPosition(element.position)
+                : "default";
         }
 
         if (action === "drawing") {
@@ -483,12 +545,12 @@ export default function Canvas() {
             if (selectedElement.type === "pencil") {
                 const newPoints = selectedElement.points.map((_, index) => ({
                     x: clientX - selectedElement.xOffsets[index],
-                    y: clientY - selectedElement.yOffsets[index]
+                    y: clientY - selectedElement.yOffsets[index],
                 }));
                 const elementsCopy = [...elements];
                 elementsCopy[selectedElement.id] = {
                     ...elementsCopy[selectedElement.id],
-                    points: newPoints
+                    points: newPoints,
                 };
                 setElements(elementsCopy, true);
             } else {
@@ -498,16 +560,30 @@ export default function Canvas() {
                 const newX1 = clientX - offsetX;
                 const newY1 = clientY - offsetY;
                 const options = type === "text" ? { text: selectedElement.text } : {};
-                updateElement(id, newX1, newY1, newX1 + width, newY1 + height, type, options, linewidth);
+                updateElement(
+                    id,
+                    newX1,
+                    newY1,
+                    newX1 + width,
+                    newY1 + height,
+                    type,
+                    options,
+                    linewidth
+                );
             }
         } else if (action === "resizing") {
             const { id, type, position, ...coordinates } = selectedElement;
-            const { x1, y1, x2, y2 } = resizedCoordinates(clientX, clientY, position, coordinates);
+            const { x1, y1, x2, y2 } = resizedCoordinates(
+                clientX,
+                clientY,
+                position,
+                coordinates
+            );
             updateElement(id, x1, y1, x2, y2, type, linewidth);
         }
     };
 
-    const handleMouseUp = event => {
+    const handleMouseUp = (event) => {
         const { clientX, clientY } = getMouseCoordinates(event);
 
         // // Check if the mouse is within the drawing area
@@ -527,7 +603,10 @@ export default function Canvas() {
 
             const index = selectedElement.id;
             const { id, type } = elements[index];
-            if ((action === "drawing" || action === "resizing") && adjustmentRequired(type)) {
+            if (
+                (action === "drawing" || action === "resizing") &&
+                adjustmentRequired(type)
+            ) {
                 const { x1, y1, x2, y2 } = adjustElementCoordinates(elements[index]);
                 updateElement(id, x1, y1, x2, y2, type);
             }
@@ -539,14 +618,30 @@ export default function Canvas() {
         // setSelectedElement(null);
     };
 
-    const handleBlur = event => {
+    const handleBlur = (event) => {
         const { id, x1, y1, type } = selectedElement;
         setAction("none");
         setSelectedElement(null);
-        updateElement(id, x1, y1, null, null, type, { text: event.target.value }, linewidth);
+        updateElement(
+            id,
+            x1,
+            y1,
+            null,
+            null,
+            type,
+            { text: event.target.value },
+            linewidth
+        );
     };
 
     const handlechange = (index) => {
+        if (currframe !== null && frame[currframe] !== elements) {
+            console.log(currframe, frame[currframe], elements, "if");
+            alert("changed");
+            const newFrame = [...frame];
+            newFrame[currframe] = elements;
+            setFrame(newFrame);
+        }
         console.log(frame, index);
         setCurrframe(index);
         setElements(frame[index]);
@@ -559,29 +654,101 @@ export default function Canvas() {
             const newFrame = [...frame];
             newFrame[currframe] = elements;
             setFrame(newFrame);
-            setCurrframe(null)
-            setElements([])
-        } else if(currframe!==null && frame[currframe]===elements){
-            setElements([])
-            setCurrframe(null)
-        } 
-        else {
+            setCurrframe(null);
+            setElements(frame.length > 0 ? frame[frame.length - 1] : []);
+        } else if (currframe !== null && frame[currframe] === elements) {
+            setElements(frame.length > 0 ? frame[frame.length - 1] : []);
+            setCurrframe(null);
+        } else {
             console.log(elements, "elements");
             console.log(currframe, frame[currframe], elements, "else");
             const newFrame = [...frame];
             newFrame.push(elements);
             setFrame(newFrame);
-            setElements([])
+            setElements(frame.length > 0 ? frame[frame.length - 1] : []);
         }
         // console.log(frame);
     };
+    const toggle_play = () => {
+        setisplaying(!isplaying);
+    };
 
     useEffect(() => {
-        console.log(frame)
-    }, [frame])
+        console.log(frame);
+    }, [frame]);
+
+    useEffect(() => {
+        let timeoutId;
+
+        const updatePlayLinePosition = () => {
+            const maxPosition = (frame.length + 2) * 36.1; // Calculate maximum position
+            const newPosition = playLinePosition + 36.1; // Increment by frame width (36.1 pixels)
+
+            if (newPosition < maxPosition) {
+                // Update play line position if it's within the maximum position
+                setPlayLinePosition(newPosition);
+                timeoutId = setTimeout(updatePlayLinePosition, 100); // Update every 100 milliseconds
+            } else {
+                // Clear timeout and reset play line position if it reaches the end
+                clearTimeout(timeoutId);
+                setPlayLinePosition(0);
+                toggle_play(); // Stop playback
+            }
+        };
+
+        if (isplaying) {
+            // Start updating play line position
+            timeoutId = setTimeout(updatePlayLinePosition, 100);
+        } else {
+            // Clear timeout if playback is stopped
+            clearTimeout(timeoutId);
+        }
+
+        return () => clearTimeout(timeoutId); // Cleanup function
+    }, [isplaying, frame.length, playLinePosition, toggle_play]);
+
+    useEffect(() => {
+        let timeoutId;
+
+        const updatePlayLinePosition = () => {
+            const maxPosition = (frame.length + 2) * 36.1; // Calculate maximum position
+            const newPosition = playLinePosition + 36.1; // Increment by frame width (36.1 pixels)
+
+            if (newPosition < maxPosition) {
+                // Update play line position if it's within the maximum position
+                setPlayLinePosition(newPosition);
+                timeoutId = setTimeout(updatePlayLinePosition, 100); // Update every 100 milliseconds
+
+                // Play the frame
+                const currentFrameIndex = Math.floor(newPosition / 36.1) - 1; // Calculate the current frame index
+                if (currentFrameIndex >= 0 && currentFrameIndex < frame.length) {
+                    setElements(frame[currentFrameIndex]); // Set canvas elements to the current frame
+                }
+            } else {
+                // Clear timeout and reset play line position if it reaches the end
+                clearTimeout(timeoutId);
+                setPlayLinePosition(0);
+                toggle_play(); // Stop playback
+            }
+        };
+
+        if (isplaying) {
+            // Start updating play line position
+            timeoutId = setTimeout(updatePlayLinePosition, 100);
+        } else {
+            // Clear timeout if playback is stopped
+            clearTimeout(timeoutId);
+        }
+
+        return () => clearTimeout(timeoutId); // Cleanup function
+    }, [isplaying, frame.length, playLinePosition, toggle_play]);
 
     return (
-        <div ref={canvasref} id="maindiv" className="bg-first w-full flex flex-col justify-center h-full" >
+        <div
+            ref={canvasref}
+            id="maindiv"
+            className="bg-first w-full flex flex-col justify-center h-full"
+        >
             {/* <div style={{ position: "fixed", zIndex: 2 }}>
                 <input
                     type="radio"
@@ -630,16 +797,19 @@ export default function Canvas() {
                         overflow: "hidden",
                         whiteSpace: "pre",
                         background: "transparent",
-                        zIndex: 2
+                        zIndex: 2,
                     }}
                 />
             ) : null}
-            <div className="border mb-auto rounded-lg border-2px bg-second" style={{ height: 550, overflow: "hidden", position: "relative" }}>
+            <div
+                className="border mb-auto rounded-lg border-2px bg-second"
+                style={{ height: 700, overflow: "hidden", position: "relative" }}
+            >
                 <canvas
                     id="canvas"
                     // ref={canvasref}
                     width={window.innerWidth} // Set your desired width here
-                    height={window.innerHeight/1.3} // Set your desired height here
+                    height={window.innerHeight / 1.1} // Set your desired height here
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
@@ -648,17 +818,37 @@ export default function Canvas() {
                     Canvas
                 </canvas>
             </div>
-            <div className="text-white">
+            <div className="text-white relative">
                 <button onClick={handleadd}>
-                    Add frame
+                    <Plus />
                 </button>
-                {frame && frame.map((val, index) => (
-                    <div key={index} onClick={() => { handlechange(index) }}>
-                        {index}
-                    </div>
-                ))}
+                <button className="ml-3" onClick={toggle_play}>
+                    {isplaying ? <Pause /> : <Play />}
+                </button>
+                <div className="flex overflow-x-auto border-2 pd-80">
+                    {frame &&
+                        frame.map((val, index) => (
+                            <div
+                                className="m-1 bg-gray-500 w-8 h-24 text-center pt-8"
+                                key={index}
+                                onClick={() => {
+                                    handlechange(index);
+                                }}
+                            >
+                                {index}
+                            </div>
+                        ))}
+                    {
+                        <div
+                            className="absolute top-[34px] left-0 bg-red-500 h-24"
+                            style={{
+                                width: "8px",
+                                transform: `translateX(${playLinePosition}px)`,
+                            }}
+                        ></div>
+                    }
+                </div>
             </div>
-
         </div>
     );
-};
+}

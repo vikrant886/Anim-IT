@@ -26,6 +26,10 @@ async function connect() {
 //Routes
 app.use('/api/auth',require('./routes/auth'));
 
+app.get('/',(req,res)=>{
+  res.send("hello world")
+})
+
 app.listen(port , ()=>{
     console.log('app is at port 8000');
 })

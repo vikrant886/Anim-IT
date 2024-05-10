@@ -1,12 +1,38 @@
-import React,{useState} from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-export default function SignUp({ loginref, logfocus, setLogfocus, setShowLogin}) {
+export default function SignUp({ loginref, logfocus, setLogfocus, setShowLogin }) {
     const navigate = useNavigate();
-    const handlelogin = () =>{
-        navigate("/dash")
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState(null);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const response = await fetch('http://localhost:8000/api/auth/createuser', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, email, password })
+        });
+        const json = await response.json();
+        console.log(json);
+        if (json.success) {
+            localStorage.setItem('token', json.authToken);
+            navigate("/dash");
+        }
+        else {
+            alert(json.error);
+        }
     }
+
+    // const handlelogin = () =>{
+    //     navigate("/dash")
+    // }
     return (
         <div ref={loginref} className="w-full h-[100vh] relative bg-background ">
             <div className="absolute  w-full h-full pt-32 pl-24 opacity-30 flex justify-between pr-8 items-center">
@@ -54,51 +80,51 @@ export default function SignUp({ loginref, logfocus, setLogfocus, setShowLogin})
             <div className="w-full h-full z-50 flex flex-col items-center justify-center" >
                 <motion.div className={`relative ${logfocus ? "top-36" : "top-60"} transition-all z-50 duration-500`}
                 >
-                    <svg width="232" height="180" viewBox="0 0 232 340" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="116.5" cy="50.5" r="48" stroke="#FFFCE1" stroke-width="5" />
-                        <path d="M103 39C103 43.4729 99.5891 47 95.5 47C91.4109 47 88 43.4729 88 39C88 34.5271 91.4109 31 95.5 31C99.5891 31 103 34.5271 103 39Z" fill="#FFFCE1" stroke="#FFFCE1" stroke-width="2" />
-                        <path d="M139 39C139 43.4729 135.589 47 131.5 47C127.411 47 124 43.4729 124 39C124 34.5271 127.411 31 131.5 31C135.589 31 139 34.5271 139 39Z" fill="#FFFCE1" stroke="#FFFCE1" stroke-width="2" />
-                        <line x1="118.5" y1="101" x2="118.5" y2="258" stroke="#FFFCE1" stroke-width="5" />
-                        <line x1="118.015" y1="259.48" x2="60.0152" y2="338.48" stroke="#FFFCE1" stroke-width="5" />
-                        <line x1="117.79" y1="256.255" x2="194.79" y2="335.255" stroke="#FFFCE1" stroke-width="5" />
-                        <path d="M116 167C153 191 227.5 202.2 229.5 55" stroke="#FFFCE1" stroke-width="5" />
-                        <path d="M116 166.692C79.163 190.627 4.99119 201.796 3 55" stroke="#FFFCE1" stroke-width="5" />
-                    </svg>
+                <svg width="232" height="180" viewBox="0 0 232 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="116.5" cy="50.5" r="48" stroke="#FFFCE1" stroke-width="5" />
+                    <path d="M103 39C103 43.4729 99.5891 47 95.5 47C91.4109 47 88 43.4729 88 39C88 34.5271 91.4109 31 95.5 31C99.5891 31 103 34.5271 103 39Z" fill="#FFFCE1" stroke="#FFFCE1" stroke-width="2" />
+                    <path d="M139 39C139 43.4729 135.589 47 131.5 47C127.411 47 124 43.4729 124 39C124 34.5271 127.411 31 131.5 31C135.589 31 139 34.5271 139 39Z" fill="#FFFCE1" stroke="#FFFCE1" stroke-width="2" />
+                    <line x1="118.5" y1="101" x2="118.5" y2="258" stroke="#FFFCE1" stroke-width="5" />
+                    <line x1="118.015" y1="259.48" x2="60.0152" y2="338.48" stroke="#FFFCE1" stroke-width="5" />
+                    <line x1="117.79" y1="256.255" x2="194.79" y2="335.255" stroke="#FFFCE1" stroke-width="5" />
+                    <path d="M116 167C153 191 227.5 202.2 229.5 55" stroke="#FFFCE1" stroke-width="5" />
+                    <path d="M116 166.692C79.163 190.627 4.99119 201.796 3 55" stroke="#FFFCE1" stroke-width="5" />
+                </svg>
 
-                </motion.div>
-                
-                    <div className="w-[30%] z-50 h-[60%] gap-4 border-border border-2 rounded-xl bg-background flex flex-col items-center " onClick={() => { setLogfocus(true) }}>
-                        <div className="w-full h-full flex items-center flex-col gap-8 pt-8">
-                            <p className="text-heading font-bold text-5xl font-pt">Sign Up</p>
-                            <div className="w-full flex items-center flex-col ">
-                                <p className="text-heading mr-auto pl-16 font-bold">
-                                    Name
-                                    <span className="text-red-500 ml-2">*</span>
-                                </p>
-                                <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Name" />
-                            </div>
-                            <div className="w-full flex items-center flex-col ">
-                                <p className="text-heading mr-auto pl-16 font-bold">
-                                    Email
-                                    <span className="text-red-500 ml-2">*</span>
-                                </p>
-                                <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Email" />
-                            </div>
-                            <div className="w-full flex items-center flex-col">
-                                <p className="text-heading mr-auto pl-16 font-bold">
-                                    Password
-                                    <span className="text-red-500 ml-2">*</span>
-                                </p>
-                                <input type="text" className=" p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Password" />
-                            </div>
-                            <button onClick={handlelogin} className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"> SignUp</button>
-                            <button className="text-blue-500" onClick={()=>{setShowLogin(true)}}>
-                               Already a user ? Log in
-                            </button>
-                        </div>
+            </motion.div>
+
+            <div className="w-[30%] z-50 h-[60%] gap-4 border-border border-2 rounded-xl bg-background flex flex-col items-center " onClick={() => { setLogfocus(true) }}>
+                <div className="w-full h-full flex items-center flex-col gap-8 pt-8">
+                    <p className="text-heading font-bold text-5xl font-pt">Sign Up</p>
+                    <div className="w-full flex items-center flex-col ">
+                        <p className="text-heading mr-auto pl-16 font-bold">
+                            Name
+                            <span className="text-red-500 ml-2">*</span>
+                        </p>
+                        <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
-                )
+                    <div className="w-full flex items-center flex-col ">
+                        <p className="text-heading mr-auto pl-16 font-bold">
+                            Email
+                            <span className="text-red-500 ml-2">*</span>
+                        </p>
+                        <input type="text" className="p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                    <div className="w-full flex items-center flex-col">
+                        <p className="text-heading mr-auto pl-16 font-bold">
+                            Password
+                            <span className="text-red-500 ml-2">*</span>
+                        </p>
+                        <input type="text" className=" p-4 text-heading bg-border font-bold rounded-lg w-[80%]" placeholder="Password" required minLength={5} value={password} onChange={(e) => setPassword(e.target.value)} />
+                    </div>
+                    <button onClick={handleSubmit} className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"> SignUp</button>
+                    <button className="text-blue-500" onClick={() => { setShowLogin(true) }}>
+                        Already a user ? Log in
+                    </button>
+                </div>
             </div>
+            )
         </div>
+        </div >
     )
 }
