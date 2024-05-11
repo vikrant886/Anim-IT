@@ -17,6 +17,7 @@ export default function Production() {
     const [canvascontext, setCanvascontext] = useState(null)
     const [roughcanvas, setRoughcanvas] = useState()
     const generator = rough.generator();
+    const [color,setColor] = useState("black")
     
     return (
         <div className="flex flex-row overflow-hidden w-screen h-screen">
@@ -38,6 +39,7 @@ export default function Production() {
                     setEle,
                     canvascontext, setCanvascontext,
                     roughcanvas, setRoughcanvas,
+                    color,setColor
                 }}
             >
                 <Lprod />

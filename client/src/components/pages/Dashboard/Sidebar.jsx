@@ -22,7 +22,7 @@ function Sidebar() {
             <Plus/>
             Create New 
           </div>
-          <div className='flex gap-4 text-text-three hover:text-text-two transition-all duration-100' onClick={()=>{navigate('/prod')}}>
+          <div className='flex gap-4 text-text-three hover:text-text-two transition-all duration-100' onClick={()=>{navigate('/collab')}}>
             <Users/>
             Community Dash
           </div>

@@ -92,4 +92,39 @@ router.post('/getuser', fetchuser, async (req, res) => {
         res.status(500).send("Internal error ...");
     }
 })
+
+router.get('/fetchall', (req, res) => {
+    SVG.find()
+        .then(svgData => {
+            res.json(svgData);
+        })
+        .catch(error => {
+            console.error('Error fetching SVG data:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        });
+});
+router.post('/save', async(req,res) => {
+    try{
+    const {frames,userId} = req.body;
+    const newAn = await SVG.create({
+        frames,
+        user:userId
+    }) 
+    const final = newAn.save;
+    res.send("Successfully saved.");
+}catch(error){
+    console.error(error.message);
+    res.status(500).send("Internal server error");
+}
+})
+router.get("/fetchuseranimations", fetchuser, async (req, res) => {
+    try {
+      const notes = await SVG.find({ user: req.user.id });
+      res.json(notes);
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).send("Internal server error");
+    }
+  });
+  
 module.exports = router;

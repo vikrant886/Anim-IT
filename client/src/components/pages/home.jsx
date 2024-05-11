@@ -110,7 +110,7 @@ export default function Home() {
                         </p>
                     </div>
                 </div>
-                <Feature featureref={featureref} />
+                <Feature featureref={featureref} featureinview={featureinview} /> 
                 {showLogin ? (
                     <Login loginref={loginref} logfocus={logfocus} setShowLogin={setShowLogin} setLogfocus={setLogfocus} />
                 ) : (

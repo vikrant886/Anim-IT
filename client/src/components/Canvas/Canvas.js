@@ -1,3 +1,10 @@
+//canvas.js
+import { X } from "lucide-react";
+import { motion } from "framer-motion";
+import axios from "axios";
+import { fabric } from "fabric";
+
+
 import React, {
     useContext,
     useEffect,
@@ -14,7 +21,7 @@ const generator = rough.generator();
 // const drawingAreaWidth = window.innerWidth / 2; // Define the width of the drawing area
 // const drawingAreaHeight = window.innerHeight / 2; // Define the height of the drawing area
 
-const createElement = (id, x1, y1, x2, y2, type, linewidth) => {
+const createElement = (id, x1, y1, x2, y2, type, linewidth, color) => {
     switch (type) {
         case "line":
         case "rectangle":
@@ -29,7 +36,16 @@ const createElement = (id, x1, y1, x2, y2, type, linewidth) => {
             return { id, x1, y1, x2, y2, type };
 
         case "pencil":
+            console.log(color);
             return { id, type, points: [{ x: x1, y: y1 }], linewidth: linewidth };
+        case "eraser":
+            return {
+                id,
+                type,
+                points: [{ x: x1, y: y1 }],
+                linewidth: linewidth,
+                color: "#ffffff",
+            };
         case "text":
             return { id, type, x1, y1, x2, y2, text: "" };
         default:
@@ -78,6 +94,15 @@ const positionWithinElement = (x, y, element) => {
                 );
             });
             return betweenAnyPoint ? "inside" : null;
+        case "eraser":
+            const betweenAnyPointe = element.points.some((point, index) => {
+                const nextPoint = element.points[index + 1];
+                if (!nextPoint) return false;
+                return (
+                    onLine(point.x, point.y, nextPoint.x, nextPoint.y, x, y, 5) != null
+                );
+            });
+            return betweenAnyPointe ? "inside" : null;
         case "text":
             return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? "inside" : null;
         default:
@@ -187,13 +212,14 @@ const getSvgPathFromStroke = (stroke) => {
     d.push("Z");
     return d.join(" ");
 };
-
 const drawElement = (
     roughCanvas,
     context,
     element,
     linewidth,
-    selectedElement
+    selectedElement,
+    cur_element_thinning,
+    color
 ) => {
     switch (element.type) {
         case "line":
@@ -211,14 +237,31 @@ const drawElement = (
         // roughCanvas.circle(element.x1, element.y1, radius);
 
         case "pencil":
+            console.log("Eraser color:", element.color); // Check if color is passed correctly
+            // Explicitly set the color to white
+            context.fillStyle = element.color || "black";
             const stroke = getSvgPathFromStroke(
                 getStroke(element.points, {
-                    size: linewidth,
+                    size: element.linewidth,
                     thinning: 0.7,
+                    color: element.color,
                 })
             );
             context.fill(new Path2D(stroke));
             break;
+        case "eraser":
+            console.log("Eraser color:", element.color); // Check if color is passed correctly
+            // Explicitly set the color to white
+            context.fillStyle = element.color || "#ffffff";
+            const strokes = getSvgPathFromStroke(
+                getStroke(element.points, {
+                    size: element.linewidth,
+                    thinning: 0.7,
+                })
+            );
+            context.fill(new Path2D(strokes));
+            break;
+
         case "text":
             context.textBaseline = "top";
             context.font = "24px sans-serif";
@@ -268,6 +311,8 @@ const usePressedKeys = () => {
 export default function Canvas() {
     const [elements, setElements, undo, redo] = useHistory([]);
     const [currframe, setCurrframe] = useState(null);
+    const [genai, setGenai] = useState("");
+    // const [brush_width, set_brush_width] = useState(0.9);
     // const [action, setAction] = useState("none");
     // const [tool, setTool] = useState("rectangle");
     const [frame, setFrame] = useState([]);
@@ -282,6 +327,7 @@ export default function Canvas() {
         setAction,
         selectedElement,
         setSelectedElement,
+        color,
     } = useContext(ProdContext);
     const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 });
     const [startPanMousePosition, setStartPanMousePosition] = React.useState({
@@ -329,6 +375,8 @@ export default function Canvas() {
         const roughCanvas = rough.canvas(canvas);
         generator.rectangle(10, 120, 100, 100, { fill: "red" });
         context.clearRect(0, 0, canvas.width, canvas.height);
+        const cur_element_thinning = linewidth;
+        // console.log("LLLL", linewidth);
 
         context.save();
         context.translate(panOffset.x, panOffset.y);
@@ -340,7 +388,16 @@ export default function Canvas() {
                 selectedElement.id === element.id
             )
                 return;
-            drawElement(roughCanvas, context, element, linewidth, selectedElement);
+            console.log("COLOR", color);
+            drawElement(
+                roughCanvas,
+                context,
+                element,
+                linewidth,
+                selectedElement,
+                cur_element_thinning,
+                color
+            );
         });
         context.restore();
     }, [elements, action, selectedElement, panOffset]);
@@ -389,18 +446,43 @@ export default function Canvas() {
         }
     }, [action, selectedElement]);
 
-    const updateElement = (id, x1, y1, x2, y2, type, options, linewidth) => {
+    const updateElement = (
+        id,
+        x1,
+        y1,
+        x2,
+        y2,
+        type,
+        options,
+        linewidth,
+        color
+    ) => {
         const elementsCopy = [...elements];
         // console.log({x1,y1,x2,y2})
         // x2=x2-75;
         switch (type) {
             case "line":
             case "rectangle":
-                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, linewidth);
+                elementsCopy[id] = createElement(
+                    id,
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    type,
+                    linewidth,
+                    color
+                );
                 break;
             case "circle":
                 elementsCopy[id] = createElement();
             case "pencil":
+                elementsCopy[id].points = [
+                    ...elementsCopy[id].points,
+                    { x: x2, y: y2 },
+                ];
+                break;
+            case "eraser":
                 elementsCopy[id].points = [
                     ...elementsCopy[id].points,
                     { x: x2, y: y2 },
@@ -420,7 +502,8 @@ export default function Canvas() {
                         x1 + textWidth,
                         y1 + textHeight,
                         type,
-                        linewidth
+                        linewidth,
+                        color
                     ),
                     text: options.text,
                 };
@@ -476,6 +559,10 @@ export default function Canvas() {
             const element = getElementAtPosition(clientX, clientY, elements);
             if (element) {
                 if (element.type === "pencil") {
+                    const xOffsets = element.points.map((point) => clientX - point.x);
+                    const yOffsets = element.points.map((point) => clientY - point.y);
+                    setSelectedElement({ ...element, xOffsets, yOffsets });
+                } else if (element.type === "eraser") {
                     const xOffsets = element.points.map((point) => clientX - point.x);
                     const yOffsets = element.points.map((point) => clientY - point.y);
                     setSelectedElement({ ...element, xOffsets, yOffsets });
@@ -542,7 +629,10 @@ export default function Canvas() {
             const { x1, y1 } = elements[index];
             updateElement(index, x1, y1, clientX, clientY, tool, linewidth);
         } else if (action === "moving") {
-            if (selectedElement.type === "pencil") {
+            if (
+                selectedElement.type === "pencil" ||
+                selectedElement.type === "eraser"
+            ) {
                 const newPoints = selectedElement.points.map((_, index) => ({
                     x: clientX - selectedElement.xOffsets[index],
                     y: clientY - selectedElement.yOffsets[index],
@@ -649,26 +739,25 @@ export default function Canvas() {
 
     const handleadd = () => {
         if (currframe !== null && frame[currframe] !== elements) {
-            console.log(currframe, frame[currframe], elements, "if");
-            alert("changed");
+            // If the current frame is not null and its content has changed
             const newFrame = [...frame];
-            newFrame[currframe] = elements;
+            // Insert the new frame after the current frame
+            newFrame.splice(currframe, 0, elements);
             setFrame(newFrame);
-            setCurrframe(null);
-            setElements(frame.length > 0 ? frame[frame.length - 1] : []);
+            setCurrframe(currframe + 1);
         } else if (currframe !== null && frame[currframe] === elements) {
-            setElements(frame.length > 0 ? frame[frame.length - 1] : []);
+            // If the current frame is not null and its content is unchanged
             setCurrframe(null);
+            setElements(frame.length > 0 ? frame[frame.length - 1] : []);
         } else {
-            console.log(elements, "elements");
-            console.log(currframe, frame[currframe], elements, "else");
+            // If there is no current frame (i.e., the canvas is empty)
             const newFrame = [...frame];
             newFrame.push(elements);
             setFrame(newFrame);
-            setElements(frame.length > 0 ? frame[frame.length - 1] : []);
+            setCurrframe(newFrame.length - 1);
         }
-        // console.log(frame);
     };
+
     const toggle_play = () => {
         setisplaying(!isplaying);
     };
@@ -743,12 +832,95 @@ export default function Canvas() {
         return () => clearTimeout(timeoutId); // Cleanup function
     }, [isplaying, frame.length, playLinePosition, toggle_play]);
 
+    const handleprompt = async () => {
+        await axios.post("https://4jns4l83-5000.inc1.devtunnels.ms/process-prompt", genai)
+            .then((res) => {
+                console.log(res);
+                // console.log(res.data.extracted_text)
+                renderSVG({ svg: res.data.extracted_text })
+            })
+            .catch((err) => {
+                console.log(err)
+            })
+    }
+    function renderSVG({ svg }) {
+        // Get the canvas element
+        const canvasElement = document.getElementById('canvas');
+
+        // Check if the canvas element exists
+        if (!canvasElement) {
+            console.error('Canvas element not found.');
+            return;
+        }
+
+        // Create a fabric.js canvas instance
+        const canvas = new fabric.Canvas(canvasElement);
+
+        // Load SVG from string
+        fabric.loadSVGFromString(svg, function (objects, options) {
+            // Check if SVG loading was successful
+            if (!objects || !objects.length) {
+                console.error('Failed to load SVG.');
+                return;
+            }
+
+            // Group SVG elements
+            const svgObject = fabric.util.groupSVGElements(objects, options);
+
+            // Calculate position to center SVG on canvas
+            svgObject.set({
+                left: canvas.width / 2 - svgObject.width / 2,
+                top: canvas.height / 2 - svgObject.height / 2
+            });
+
+            // Add SVG object to canvas and render
+            canvas.add(svgObject);
+            canvas.renderAll();
+        }, function (item, object) {
+            // Error handling during SVG loading
+            console.error('Error loading SVG:', item, object);
+        });
+    }
+
+
     return (
         <div
             ref={canvasref}
             id="maindiv"
             className="bg-first w-full flex flex-col justify-center h-full"
         >
+            {
+                tool === "ai" && <div className="inset-0 absolute bg-first z-50 bg-opacity-70 w-screen flex justify-center h-screen">
+                    <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 10 }}
+                        className="bg-third w-[40%] rounded-xl h-[10%] p-4 justify-center items-center flex flex-row"
+                    >
+                        <input onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                // handleprompt();
+                                renderSVG({
+                                    svg: `<svg height="250" width="350" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                  <marker id="circle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+                                    <circle cx="5" cy="5" r="3" fill="black" />
+                                  </marker>
+                                  <marker id="arrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                                    <path d="M 0 0 L 10 5 L 0 10 z" fill="black" />
+                                  </marker>
+                                </defs>
+                                <line x1="10" y1="10" x2="300" y2="200" stroke="red" stroke-width="3" marker-start="url(#circle)" marker-end="url(#arrow)" />
+                                Sorry, your browser does not support inline SVG.
+                              </svg>`})
+                            }
+                        }} onChange={(e) => {
+                            setGenai(e.target.value)
+                        }}
+                            placeholder="Enter a Prompt for GenAI" className="w-[90%] h-full bg-transparent pl-2 outline-none text-white" />
+                        <X className="size-8 text-text-one  hover:text-text-two" onClick={() => { setTool('selection') }} />
+                    </motion.div>
+                </div>
+            }
             {/* <div style={{ position: "fixed", zIndex: 2 }}>
                 <input
                     type="radio"
@@ -803,13 +975,13 @@ export default function Canvas() {
             ) : null}
             <div
                 className="border mb-auto rounded-lg border-2px bg-second"
-                style={{ height: 700, overflow: "hidden", position: "relative" }}
+                style={{ height: 1550, overflow: "hidden", position: "relative" }}
             >
                 <canvas
                     id="canvas"
                     // ref={canvasref}
                     width={window.innerWidth} // Set your desired width here
-                    height={window.innerHeight / 1.1} // Set your desired height here
+                    height={window.innerHeight / 1.3} // Set your desired height here
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
@@ -829,7 +1001,11 @@ export default function Canvas() {
                     {frame &&
                         frame.map((val, index) => (
                             <div
-                                className="m-1 bg-gray-500 w-8 h-24 text-center pt-8"
+                                className={
+                                    index === currframe
+                                        ? "m-1 bg-orange-500 w-8 h-24 text-center pt-8"
+                                        : "m-1 bg-gray-500 w-8 h-24 text-center pt-8"
+                                }
                                 key={index}
                                 onClick={() => {
                                     handlechange(index);
