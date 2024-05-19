@@ -15,108 +15,13 @@ import rough from "roughjs/bundled/rough.esm";
 import getStroke from "perfect-freehand";
 import { ProdContext } from "../context/prodContext";
 import { Play, Plus, Pause, Save, Loader } from "lucide-react";
+import { createElement } from "./create-element";
+import { positionWithinElement } from "./cursor-position";
 
 const generator = rough.generator();
 // const drawingAreaWidth = window.innerWidth / 2; // Define the width of the drawing area
 // const drawingAreaHeight = window.innerHeight / 2; // Define the height of the drawing area
 
-const createElement = (id, x1, y1, x2, y2, type, linewidth, color) => {
-  switch (type) {
-    case "line":
-    case "rectangle":
-      const roughElement =
-        type === "line"
-          ? generator.line(x1, y1, x2, y2)
-          : generator.rectangle(x1, y1, x2 - x1, y2 - y1);
-      console.log(roughElement);
-      // roughElement.op
-      return { id, x1, y1, x2, y2, type, roughElement };
-    case "circle":
-      return { id, x1, y1, x2, y2, type };
-
-    case "pencil":
-      console.log(color);
-      return {
-        id,
-        type,
-        points: [{ x: x1, y: y1 }],
-        linewidth: linewidth,
-        color: color,
-      };
-    case "eraser":
-      return {
-        id,
-        type,
-        points: [{ x: x1, y: y1 }],
-        linewidth: linewidth,
-        color: "#ffffff",
-      };
-    case "text":
-      return { id, type, x1, y1, x2, y2, text: "" };
-    default:
-      throw new Error("Type not recognised: ${ type }");
-  }
-};
-
-const nearPoint = (x, y, x1, y1, name) => {
-  return Math.abs(x - x1) < 5 && Math.abs(y - y1) < 5 ? name : null;
-};
-
-const onLine = (x1, y1, x2, y2, x, y, maxDistance = 1) => {
-  const a = { x: x1, y: y1 };
-  const b = { x: x2, y: y2 };
-  const c = { x, y };
-  const offset = distance(a, b) - (distance(a, c) + distance(b, c));
-  return Math.abs(offset) < maxDistance ? "inside" : null;
-};
-
-const positionWithinElement = (x, y, element) => {
-  const { type, x1, x2, y1, y2 } = element;
-  switch (type) {
-    case "line":
-      const on = onLine(x1, y1, x2, y2, x, y);
-      const start = nearPoint(x, y, x1, y1, "start");
-      const end = nearPoint(x, y, x2, y2, "end");
-      return start || end || on;
-    case "rectangle":
-      const topLeft = nearPoint(x, y, x1, y1, "tl");
-      const topRight = nearPoint(x, y, x2, y1, "tr");
-      const bottomLeft = nearPoint(x, y, x1, y2, "bl");
-      const bottomRight = nearPoint(x, y, x2, y2, "br");
-      const inside = x >= x1 && x <= x2 && y >= y1 && y <= y2 ? "inside" : null;
-      return topLeft || topRight || bottomLeft || bottomRight || inside;
-    case "circle":
-      const distanceFromCenter = Math.sqrt((x - x1) * 2 + (y - y1) * 2);
-      const radius = Math.sqrt((x1 - x2) * 2 + (y2 - y1) * 2);
-      const insideCircle = distanceFromCenter <= radius;
-      return insideCircle ? "inside" : null;
-    case "pencil":
-      const betweenAnyPoint = element.points.some((point, index) => {
-        const nextPoint = element.points[index + 1];
-        if (!nextPoint) return false;
-        return (
-          onLine(point.x, point.y, nextPoint.x, nextPoint.y, x, y, 5) != null
-        );
-      });
-      return betweenAnyPoint ? "inside" : null;
-    case "eraser":
-      const betweenAnyPointe = element.points.some((point, index) => {
-        const nextPoint = element.points[index + 1];
-        if (!nextPoint) return false;
-        return (
-          onLine(point.x, point.y, nextPoint.x, nextPoint.y, x, y, 5) != null
-        );
-      });
-      return betweenAnyPointe ? "inside" : null;
-    case "text":
-      return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? "inside" : null;
-    default:
-      throw new Error("Type not recognised: ${ type }");
-  }
-};
-
-const distance = (a, b) =>
-  Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
 
 const getElementAtPosition = (x, y, elements) => {
   return elements
@@ -237,8 +142,13 @@ const drawElement = (
       roughCanvas.draw(element.roughElement);
       break;
     case "circle":
-      console.log(element);
-      const radius = Math.abs(element.x2 - element.x1) / 2;
+      if (selectedElement && selectedElement.id === element.id) {
+        element.rough.options.stroke = "#0000ff";
+      } else {
+        element.rough.options.stroke = "#000";
+      }
+      roughCanvas.draw(element.rough)
+      break;
     // roughCanvas.circle(element.x1, element.y1, radius);
 
     case "pencil":
@@ -363,7 +273,6 @@ export default function Canvas() {
   };
 
   useEffect(() => {
-    console.log("From canvas color", color);
   }, [color]);
   const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 });
   const [startPanMousePosition, setStartPanMousePosition] = React.useState({
@@ -416,7 +325,6 @@ export default function Canvas() {
 
     context.save();
     context.translate(panOffset.x, panOffset.y);
-    console.log(elements);
     elements.forEach((element) => {
       if (
         selectedElement &&
@@ -424,7 +332,6 @@ export default function Canvas() {
         selectedElement.id === element.id
       )
         return;
-      console.log("COLOR", color);
       drawElement(
         roughCanvas,
         context,
@@ -455,9 +362,6 @@ export default function Canvas() {
     };
   }, [undo, redo]);
 
-  useEffect(() => {
-    console.log("change ", elements);
-  }, [elements]);
 
   useEffect(() => {
     const panFunction = (event) => {
@@ -494,7 +398,6 @@ export default function Canvas() {
     color
   ) => {
     const elementsCopy = [...elements];
-    // console.log({x1,y1,x2,y2})
     // x2=x2-75;
     switch (type) {
       case "line":
@@ -511,7 +414,17 @@ export default function Canvas() {
         );
         break;
       case "circle":
-        elementsCopy[id] = createElement();
+        elementsCopy[id] = createElement(
+          id,
+          x1,
+          y1,
+          x2,
+          y2,
+          type,
+          linewidth,
+          color
+        );
+        break;
       case "pencil":
         elementsCopy[id].points = [
           ...elementsCopy[id].points,
@@ -575,6 +488,7 @@ export default function Canvas() {
     return { clientX, clientY };
   };
 
+
   const handleMouseDown = (event) => {
     if (action === "writing") return;
 
@@ -594,6 +508,7 @@ export default function Canvas() {
     if (tool === "selection") {
       const element = getElementAtPosition(clientX, clientY, elements);
       if (element) {
+        console.log(selectedElement)
         if (element.type === "pencil") {
           const xOffsets = element.points.map((point) => clientX - point.x);
           const yOffsets = element.points.map((point) => clientY - point.y);
@@ -763,13 +678,11 @@ export default function Canvas() {
 
   const handlechange = (index) => {
     if (currframe !== null && frame[currframe] !== elements) {
-      console.log(currframe, frame[currframe], elements, "if");
       alert("changed");
       const newFrame = [...frame];
       newFrame[currframe] = elements;
       setFrame(newFrame);
     }
-    console.log(frame, index);
     setCurrframe(index);
     setElements(frame[index]);
   };
@@ -799,9 +712,6 @@ export default function Canvas() {
     setisplaying(!isplaying);
   };
 
-  useEffect(() => {
-    console.log(frame);
-  }, [frame]);
 
   useEffect(() => {
     let timeoutId;
@@ -955,6 +865,22 @@ export default function Canvas() {
   //   );
   // }
   // const renderSVG = ({ svg }) => {};
+
+  // useEffect(() => {
+  //   const handleKeyDown = (event) => {
+  //     if (event.key === 'Delete') {
+  //       console.log(elements)
+  //       const filteredElements = elements.filter(element => element.id === selectedElement.id);
+  //       console.log(filteredElements)
+  //       setElements(filteredElements);
+  //     }
+  //   };
+  //   window.addEventListener('keydown', handleKeyDown);
+
+  //   return () => {
+  //     window.removeEventListener('keydown', handleKeyDown);
+  //   };
+  // }, []);
 
   return (
     <div
